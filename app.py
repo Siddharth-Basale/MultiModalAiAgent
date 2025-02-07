@@ -24,7 +24,7 @@ INSTRUCTIONS = """Analyze products based on..."""
 def get_agent():
     """Create and cache the Agent with Gemini model"""
     return Agent(
-        model=Gemini(id="gemini-2.0-flash-exp-expedited"),
+        model=Gemini(id="gemini-2.0-flash-exp"),
         tools=[TavilyTools()],
         system_prompt=SYSTEM_PROMPT,
         instructions=INSTRUCTIONS,
