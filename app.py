@@ -10,8 +10,8 @@ from constants import SYSTEM_PROMPT, INSTRUCTIONS
 import requests
 
 # Load API keys from Streamlit secrets
-os.environ['TAVILY_API_KEY'] = st.secrets['TAVILY_KEY']
-os.environ['GOOGLE_API_KEY'] = st.secrets['GEMINI_KEY']
+os.environ['TAVILY_API_KEY'] = st.secrets['TAVILY_API_KEY']
+os.environ['GOOGLE_API_KEY'] = st.secrets['GOOGLE_API_KEY']
 
 MAX_IMAGE_WIDTH = 300  # Display size limit
 
