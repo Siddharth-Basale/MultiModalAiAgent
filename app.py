@@ -66,7 +66,7 @@ def main():
         )
         if uploaded_file:
             resized_image = resize_image_for_display(uploaded_file)
-            st.image(resized_image, caption="Uploaded Image", use_column_width=False, width=MAX_IMAGE_WIDTH)
+            st.image(resized_image, caption="Uploaded Image", use_container_width=False, width=MAX_IMAGE_WIDTH)
             if st.button("🔍 Analyze Uploaded Image"):
                 temp_path = save_uploaded_file(uploaded_file)
                 analyze_image(temp_path)
