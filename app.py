@@ -54,7 +54,7 @@ if image and st.button("🔍 Analyze Image"):
     image.save(image_path)
 
     with st.spinner("Analyzing the image... 🔄"):
-        response = agent.get_response(
+        response = agent.run(
             "Analyze the product image", 
             images=[image_path]
         )
