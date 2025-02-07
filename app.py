@@ -1,64 +1,107 @@
 import streamlit as st
 import os
+from PIL import Image
+from io import BytesIO
 from phi.agent import Agent
 from phi.model.google import Gemini
 from phi.tools.tavily import TavilyTools
+from tempfile import NamedTemporaryFile
 from constants import SYSTEM_PROMPT, INSTRUCTIONS
-from PIL import Image
 import requests
-from io import BytesIO
 
 # Load API keys from Streamlit secrets
-TAVILY_API_KEY = st.secrets["TAVILY_API_KEY"]
-GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
+os.environ['TAVILY_API_KEY'] = st.secrets['TAVILY_KEY']
+os.environ['GOOGLE_API_KEY'] = st.secrets['GEMINI_KEY']
 
-# Initialize AI agent
-agent = Agent(
-    model=Gemini(id="gemini-2.0-flash-exp"),
-    tools=[TavilyTools()],
-    system_prompt=SYSTEM_PROMPT,
-    instructions=INSTRUCTIONS,
-)
+MAX_IMAGE_WIDTH = 300  # Display size limit
 
-st.title("📸 Image Analysis with AI")
+def resize_image_for_display(image_file):
+    """Resize image for display only, returns bytes"""
+    img = Image.open(image_file)
+    aspect_ratio = img.height / img.width
+    new_height = int(MAX_IMAGE_WIDTH * aspect_ratio)
+    img = img.resize((MAX_IMAGE_WIDTH, new_height), Image.Resampling.LANCZOS)
+    
+    buf = BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
-# Option to upload, provide URL, or capture photo
-option = st.radio("Choose an option:", ["Upload Image", "Provide URL", "Capture Photo"])
+@st.cache_resource
+def get_agent():
+    """Load the AI agent once"""
+    return Agent(
+        model=Gemini(id="gemini-2.0-flash-exp"),
+        system_prompt=SYSTEM_PROMPT,
+        instructions=INSTRUCTIONS,
+        tools=[TavilyTools(api_key=os.getenv("TAVILY_API_KEY"))],
+        markdown=True,
+    )
 
-image = None
-if option == "Upload Image":
-    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="📤 Uploaded Image", use_column_width=True)
+def analyze_image(image_path):
+    """Run AI analysis on the given image"""
+    agent = get_agent()
+    with st.spinner('🔍 Analyzing image...'):
+        response = agent.run("Analyze the given image", images=[image_path])
+        st.success("✅ Analysis Complete!")
+        st.markdown(response.content)
 
-elif option == "Provide URL":
-    image_url = st.text_input("Enter Image URL:")
-    if image_url:
-        try:
-            response = requests.get(image_url)
-            image = Image.open(BytesIO(response.content))
-            st.image(image, caption="🌐 Image from URL", use_column_width=True)
-        except Exception as e:
-            st.error("❌ Error loading image from URL")
+def save_uploaded_file(uploaded_file):
+    """Save uploaded file temporarily"""
+    with NamedTemporaryFile(dir='.', suffix='.jpg', delete=False) as f:
+        f.write(uploaded_file.getbuffer())
+        return f.name
 
-elif option == "Capture Photo":
-    captured_image = st.camera_input("📷 Take a photo")
-    if captured_image:
-        image = Image.open(captured_image)
-        st.image(image, caption="📸 Captured Image", use_column_width=True)
+def main():
+    st.title("📸 AI Product Image Analyzer")
 
-# Process image if available
-if image and st.button("🔍 Analyze Image"):
-    image_path = "temp_image.jpg"
-    image.save(image_path)
-
-    with st.spinner("Analyzing the image... 🔄"):
-        response = agent.run(
-            "Analyze the product image", 
-            images=[image_path]
+    tab_upload, tab_url, tab_camera = st.tabs([
+        "📤 Upload Image", 
+        "🌐 Provide URL", 
+        "📸 Capture Photo"
+    ])
+    
+    with tab_upload:
+        uploaded_file = st.file_uploader(
+            "Upload an image", type=["jpg", "jpeg", "png"]
         )
+        if uploaded_file:
+            resized_image = resize_image_for_display(uploaded_file)
+            st.image(resized_image, caption="Uploaded Image", use_column_width=False, width=MAX_IMAGE_WIDTH)
+            if st.button("🔍 Analyze Uploaded Image"):
+                temp_path = save_uploaded_file(uploaded_file)
+                analyze_image(temp_path)
+                os.unlink(temp_path)  # Delete temp file
+    
+    with tab_url:
+        image_url = st.text_input("Enter Image URL:")
+        if image_url:
+            try:
+                response = requests.get(image_url)
+                img = Image.open(BytesIO(response.content))
+                resized_image = resize_image_for_display(img)
+                st.image(resized_image, caption="Image from URL", use_column_width=False, width=MAX_IMAGE_WIDTH)
+                if st.button("🔍 Analyze URL Image"):
+                    temp_path = "temp_url_image.jpg"
+                    img.save(temp_path)
+                    analyze_image(temp_path)
+                    os.unlink(temp_path)
+            except Exception as e:
+                st.error("❌ Error loading image from URL")
 
-    st.success("✅ Analysis Complete!")
-    st.write("### 🔍 AI Analysis Result:")
-    st.write(response)
+    with tab_camera:
+        captured_image = st.camera_input("Take a picture")
+        if captured_image:
+            resized_image = resize_image_for_display(captured_image)
+            st.image(resized_image, caption="Captured Photo", use_column_width=False, width=MAX_IMAGE_WIDTH)
+            if st.button("🔍 Analyze Captured Photo"):
+                temp_path = save_uploaded_file(captured_image)
+                analyze_image(temp_path)
+                os.unlink(temp_path)
+
+if __name__ == "__main__":
+    st.set_page_config(
+        page_title="AI Product Analyzer",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
+    main()
