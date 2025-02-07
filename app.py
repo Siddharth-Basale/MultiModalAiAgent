@@ -79,7 +79,7 @@ def main():
                 response = requests.get(image_url)
                 img = Image.open(BytesIO(response.content))
                 resized_image = resize_image_for_display(img)
-                st.image(resized_image, caption="Image from URL", use_column_width=False, width=MAX_IMAGE_WIDTH)
+                st.image(resized_image, caption="Image from URL", use_container_width=False, width=MAX_IMAGE_WIDTH)
                 if st.button("🔍 Analyze URL Image"):
                     temp_path = "temp_url_image.jpg"
                     img.save(temp_path)
@@ -92,7 +92,7 @@ def main():
         captured_image = st.camera_input("Take a picture")
         if captured_image:
             resized_image = resize_image_for_display(captured_image)
-            st.image(resized_image, caption="Captured Photo", use_column_width=False, width=MAX_IMAGE_WIDTH)
+            st.image(resized_image, caption="Captured Photo", use_container_width=False, width=MAX_IMAGE_WIDTH)
             if st.button("🔍 Analyze Captured Photo"):
                 temp_path = save_uploaded_file(captured_image)
                 analyze_image(temp_path)
