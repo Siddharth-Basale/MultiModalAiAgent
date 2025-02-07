@@ -20,7 +20,7 @@ agent = Agent(
     instructions=INSTRUCTIONS,
 )
 
-st.title("Image Analysis with AI")
+st.title("📸 Image Analysis with AI")
 
 # Option to upload, provide URL, or capture photo
 option = st.radio("Choose an option:", ["Upload Image", "Provide URL", "Capture Photo"])
@@ -30,7 +30,7 @@ if option == "Upload Image":
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
     if uploaded_file:
         image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
+        st.image(image, caption="📤 Uploaded Image", use_column_width=True)
 
 elif option == "Provide URL":
     image_url = st.text_input("Enter Image URL:")
@@ -38,23 +38,27 @@ elif option == "Provide URL":
         try:
             response = requests.get(image_url)
             image = Image.open(BytesIO(response.content))
-            st.image(image, caption="Image from URL", use_column_width=True)
+            st.image(image, caption="🌐 Image from URL", use_column_width=True)
         except Exception as e:
-            st.error("Error loading image from URL")
+            st.error("❌ Error loading image from URL")
 
 elif option == "Capture Photo":
-    captured_image = st.camera_input("Take a photo")
+    captured_image = st.camera_input("📷 Take a photo")
     if captured_image:
         image = Image.open(captured_image)
-        st.image(image, caption="Captured Image", use_column_width=True)
+        st.image(image, caption="📸 Captured Image", use_column_width=True)
 
 # Process image if available
-if image and st.button("Analyze Image"):
+if image and st.button("🔍 Analyze Image"):
     image_path = "temp_image.jpg"
     image.save(image_path)
-    agent.print_response(
-        "Analyze the product image", 
-        images=[image_path],
-        stream=True
-    )
-    st.success("Analysis complete! Check console for response.")
+
+    with st.spinner("Analyzing the image... 🔄"):
+        response = agent.get_response(
+            "Analyze the product image", 
+            images=[image_path]
+        )
+
+    st.success("✅ Analysis Complete!")
+    st.write("### 🔍 AI Analysis Result:")
+    st.write(response)
